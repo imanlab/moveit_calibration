@@ -115,8 +115,8 @@ ControlTabWidget::ControlTabWidget(QWidget* parent)
   layout->addLayout(calib_layout);
 
   // Calibration progress
-  auto_progress_ = new ProgressBarWidget(this);
-  layout->addWidget(auto_progress_);
+  // auto_progress_ = new ProgressBarWidget(this);
+  // layout->addWidget(auto_progress_);
 
   // Pose sample tree view area
   QGroupBox* sample_group = new QGroupBox("Pose samples");
@@ -150,23 +150,25 @@ ControlTabWidget::ControlTabWidget(QWidget* parent)
   connect(group_name_, SIGNAL(activated(const QString&)), this, SLOT(planningGroupNameChanged(const QString&)));
   setting_layout->addRow("Planning Group", group_name_);
 
-  load_joint_state_btn_ = new QPushButton("Load joint states");
-  connect(load_joint_state_btn_, SIGNAL(clicked(bool)), this, SLOT(loadJointStateBtnClicked(bool)));
-  setting_layout->addRow(load_joint_state_btn_);
+  // load_joint_state_btn_ = new QPushButton("Load joint states");
+  // connect(load_joint_state_btn_, SIGNAL(clicked(bool)), this, SLOT(loadJointStateBtnClicked(bool)));
+  // setting_layout->addRow(load_joint_state_btn_);
 
-  save_joint_state_btn_ = new QPushButton("Save joint states");
-  connect(save_joint_state_btn_, SIGNAL(clicked(bool)), this, SLOT(saveJointStateBtnClicked(bool)));
-  setting_layout->addRow(save_joint_state_btn_);
+  // save_joint_state_btn_ = new QPushButton("Save joint states");
+  // connect(save_joint_state_btn_, SIGNAL(clicked(bool)), this, SLOT(saveJointStateBtnClicked(bool)));
+  // setting_layout->addRow(save_joint_state_btn_);
 
-  save_camera_pose_btn_ = new QPushButton("Save camera pose");
-  connect(save_camera_pose_btn_, SIGNAL(clicked(bool)), this, SLOT(saveCameraPoseBtnClicked(bool)));
-  setting_layout->addRow(save_camera_pose_btn_);
+  // save_camera_pose_btn_ = new QPushButton("Save camera pose");
+  // connect(save_camera_pose_btn_, SIGNAL(clicked(bool)), this, SLOT(saveCameraPoseBtnClicked(bool)));
+  // setting_layout->addRow(save_camera_pose_btn_);
 
   // Manual calibration area
   QGroupBox* manual_cal_group = new QGroupBox("Manual Calibration");
   layout_right->addWidget(manual_cal_group);
   QHBoxLayout* control_cal_layout = new QHBoxLayout();
-  manual_cal_group->setLayout(control_cal_layout);
+  QVBoxLayout* control_cal_vlayout = new QVBoxLayout();
+  manual_cal_group->setLayout(control_cal_vlayout);
+  control_cal_vlayout->addLayout(control_cal_layout);
 
   take_sample_btn_ = new QPushButton("Take sample");
   take_sample_btn_->setMinimumHeight(35);
@@ -178,11 +180,44 @@ ControlTabWidget::ControlTabWidget(QWidget* parent)
   connect(reset_sample_btn_, SIGNAL(clicked(bool)), this, SLOT(clearSamplesBtnClicked(bool)));
   control_cal_layout->addWidget(reset_sample_btn_);
 
+  auto calibrate_btn = new QPushButton("Calibrate");
+  calibrate_btn->setMinimumHeight(35);
+  // connect(take_sample_btn_, SIGNAL(clicked(bool)), this, SLOT(takeSampleBtnClicked(bool)));
+  control_cal_vlayout->addWidget(calibrate_btn);
+
+  auto save_cal_btn = new QPushButton("Save calibration");
+  save_cal_btn->setMinimumHeight(35);
+  // connect(take_sample_btn_, SIGNAL(clicked(bool)), this, SLOT(takeSampleBtnClicked(bool)));
+  control_cal_vlayout->addWidget(save_cal_btn);
+
   // Auto calibration area
-  QGroupBox* auto_cal_group = new QGroupBox("Calibrate With Recorded Joint States");
+  QGroupBox* auto_cal_group = new QGroupBox("Calibrate With Recorded Poses");
   layout_right->addWidget(auto_cal_group);
   QVBoxLayout* auto_cal_layout = new QVBoxLayout();
   auto_cal_group->setLayout(auto_cal_layout);
+
+  QHBoxLayout* rec_save_layout = new QHBoxLayout();
+  auto_cal_layout->addLayout(rec_save_layout);
+  auto rec_js_btn = new QPushButton("Record pose");
+  rec_js_btn->setMinimumHeight(35);
+  rec_save_layout->addWidget(rec_js_btn);
+  auto save_js_btn = new QPushButton("Save recorded poses");
+  save_js_btn->setMinimumHeight(35);
+  rec_save_layout->addWidget(save_js_btn);
+
+  QHBoxLayout* pose_slider_layout = new QHBoxLayout();
+  auto_cal_layout->addLayout(pose_slider_layout);
+  QLabel* pose_slider_label = new QLabel("Prerecorded poses:");
+  pose_slider_layout->addWidget(pose_slider_label);
+  QSlider* slider = new QSlider(Qt::Horizontal);
+  slider->setMaximum(7);
+  slider->setMinimum(1);
+  slider->setTickPosition(QSlider::TicksBelow);
+  slider->setTickInterval(1);
+  slider->setMinimumHeight(35);
+  pose_slider_layout->addWidget(slider);
+  QLabel* pose_slider_status_label = new QLabel("3 of 7");
+  pose_slider_layout->addWidget(pose_slider_status_label);
 
   QHBoxLayout* auto_btns_layout = new QHBoxLayout();
   auto_cal_layout->addLayout(auto_btns_layout);
@@ -198,11 +233,11 @@ ControlTabWidget::ControlTabWidget(QWidget* parent)
   connect(auto_execute_btn_, SIGNAL(clicked(bool)), this, SLOT(autoExecuteBtnClicked(bool)));
   auto_btns_layout->addWidget(auto_execute_btn_);
 
-  auto_skip_btn_ = new QPushButton("Skip");
-  auto_skip_btn_->setMinimumHeight(35);
-  auto_skip_btn_->setToolTip("Skip the current robot state target");
-  connect(auto_skip_btn_, SIGNAL(clicked(bool)), this, SLOT(autoSkipBtnClicked(bool)));
-  auto_btns_layout->addWidget(auto_skip_btn_);
+  // auto_skip_btn_ = new QPushButton("Skip");
+  // auto_skip_btn_->setMinimumHeight(35);
+  // auto_skip_btn_->setToolTip("Skip the current robot state target");
+  // connect(auto_skip_btn_, SIGNAL(clicked(bool)), this, SLOT(autoSkipBtnClicked(bool)));
+  // auto_btns_layout->addWidget(auto_skip_btn_);
 
   // Initialize handeye solver plugins
   std::vector<std::string> plugins;
@@ -523,7 +558,7 @@ void ControlTabWidget::takeSampleBtnClicked(bool clicked)
       {
         joint_names_ = names;
         joint_states_.push_back(state_joint_values);
-        auto_progress_->setMax(joint_states_.size());
+        // auto_progress_->setMax(joint_states_.size());
       }
     }
   }
@@ -538,8 +573,8 @@ void ControlTabWidget::clearSamplesBtnClicked(bool clicked)
 
   // Clear recorded joint states
   joint_states_.clear();
-  auto_progress_->setMax(0);
-  auto_progress_->setValue(0);
+  // auto_progress_->setMax(0);
+  // auto_progress_->setValue(0);
 }
 
 void ControlTabWidget::saveCameraPoseBtnClicked(bool clicked)
@@ -598,7 +633,7 @@ void ControlTabWidget::planningGroupNameChanged(const QString& text)
 
       // Clear the joint values aligning with other group
       joint_states_.clear();
-      auto_progress_->setMax(0);
+      // auto_progress_->setMax(0);
     }
     catch (const std::exception& e)
     {
@@ -729,8 +764,8 @@ void ControlTabWidget::loadJointStateBtnClicked(bool clicked)
 
   if (joint_states_.size() > 0)
   {
-    auto_progress_->setMax(joint_states_.size());
-    auto_progress_->setValue(0);
+    // auto_progress_->setMax(joint_states_.size());
+    // auto_progress_->setValue(0);
   }
   ROS_INFO_STREAM_NAMED(LOGNAME, "Loaded and parsed: " << file_name.toStdString());
 }
@@ -744,13 +779,13 @@ void ControlTabWidget::autoPlanBtnClicked(bool clicked)
 void ControlTabWidget::computePlan()
 {
   planning_res_ = ControlTabWidget::SUCCESS;
-  int max = auto_progress_->bar_->maximum();
+  // int max = auto_progress_->bar_->maximum();
 
-  if (max != joint_states_.size() || auto_progress_->getValue() == max)
-  {
-    planning_res_ = ControlTabWidget::FAILURE_NO_JOINT_STATE;
-    return;
-  }
+  // if (max != joint_states_.size() || auto_progress_->getValue() == max)
+  //{
+  // planning_res_ = ControlTabWidget::FAILURE_NO_JOINT_STATE;
+  // return;
+  //}
 
   if (!checkJointStates())
   {
@@ -785,22 +820,22 @@ void ControlTabWidget::computePlan()
     start_state.reset(new robot_state::RobotState(ps->getCurrentState()));
 
   // Plan motion to the recorded joint state target
-  if (auto_progress_->getValue() < joint_states_.size())
-  {
-    move_group_->setStartState(*start_state);
-    move_group_->setJointValueTarget(joint_states_[auto_progress_->getValue()]);
-    move_group_->setMaxVelocityScalingFactor(0.5);
-    move_group_->setMaxAccelerationScalingFactor(0.5);
-    current_plan_.reset(new moveit::planning_interface::MoveGroupInterface::Plan());
-    planning_res_ = (move_group_->plan(*current_plan_) == moveit::planning_interface::MoveItErrorCode::SUCCESS) ?
-                        ControlTabWidget::SUCCESS :
-                        ControlTabWidget::FAILURE_PLAN_FAILED;
-
-    if (planning_res_ == ControlTabWidget::SUCCESS)
-      ROS_DEBUG_STREAM_NAMED(LOGNAME, "Planning succeed.");
-    else
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Planning failed.");
-  }
+  // if (auto_progress_->getValue() < joint_states_.size())
+  //{
+  // move_group_->setStartState(*start_state);
+  // move_group_->setJointValueTarget(joint_states_[auto_progress_->getValue()]);
+  // move_group_->setMaxVelocityScalingFactor(0.5);
+  // move_group_->setMaxAccelerationScalingFactor(0.5);
+  // current_plan_.reset(new moveit::planning_interface::MoveGroupInterface::Plan());
+  // planning_res_ = (move_group_->plan(*current_plan_) == moveit::planning_interface::MoveItErrorCode::SUCCESS) ?
+  // ControlTabWidget::SUCCESS :
+  // ControlTabWidget::FAILURE_PLAN_FAILED;
+  //
+  // if (planning_res_ == ControlTabWidget::SUCCESS)
+  // ROS_DEBUG_STREAM_NAMED(LOGNAME, "Planning succeed.");
+  // else
+  // ROS_ERROR_STREAM_NAMED(LOGNAME, "Planning failed.");
+  //}
 }
 
 void ControlTabWidget::autoExecuteBtnClicked(bool clicked)
@@ -867,7 +902,7 @@ void ControlTabWidget::executeFinished()
   auto_execute_btn_->setEnabled(true);
   if (planning_res_)
   {
-    auto_progress_->setValue(auto_progress_->getValue() + 1);
+    // auto_progress_->setValue(auto_progress_->getValue() + 1);
     if (!frameNamesEmpty())
       takeTransformSamples();
 
@@ -879,7 +914,7 @@ void ControlTabWidget::executeFinished()
 
 void ControlTabWidget::autoSkipBtnClicked(bool clicked)
 {
-  auto_progress_->setValue(auto_progress_->getValue() + 1);
+  // auto_progress_->setValue(auto_progress_->getValue() + 1);
 }
 
 }  // namespace moveit_rviz_plugin
