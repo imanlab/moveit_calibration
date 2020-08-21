@@ -102,11 +102,25 @@ TargetTabWidget::TargetTabWidget(QWidget* parent)
   QGroupBox* group_left_top = new QGroupBox("Target Params", this);
 
   layout_left->addWidget(group_left_top);
-  group_left_top->setLayout(target_param_layout_);
+
+  QVBoxLayout* target_param_layout_container = new QVBoxLayout();
+  group_left_top->setLayout(target_param_layout_container);
 
   target_type_ = new QComboBox();
   connect(target_type_, SIGNAL(activated(const QString&)), this, SLOT(targetTypeComboboxChanged(const QString&)));
+  target_param_layout_container->addLayout(target_param_layout_);
+
   target_param_layout_->addRow("Target Type", target_type_);
+
+  // Target param load/save
+  QHBoxLayout* target_param_load_save_layout = new QHBoxLayout();
+  target_param_layout_container->addLayout(target_param_load_save_layout);
+
+  QPushButton* load_target_params_btn = new QPushButton("Load Params");
+  target_param_load_save_layout->addWidget(load_target_params_btn);
+
+  QPushButton* save_target_params_btn = new QPushButton("Save Params");
+  target_param_load_save_layout->addWidget(save_target_params_btn);
 
   // Target 3D pose recognition area
   QGroupBox* group_left_bottom = new QGroupBox("Target Pose Detection", this);
