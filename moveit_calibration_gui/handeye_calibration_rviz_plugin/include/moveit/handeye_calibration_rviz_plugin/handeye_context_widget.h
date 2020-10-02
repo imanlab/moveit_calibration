@@ -180,7 +180,8 @@ public Q_SLOTS:
 
   void setOpticalFrame(const std::string& frame_id);
 
-  void updateCameraPose(double tx, double ty, double tz, double rx, double ry, double rz);
+  void updateCameraPose(double tx, double ty, double tz, double rx, double ry, double rz, double qx, double qy,
+                        double qz, double qw);
 
 private Q_SLOTS:
 

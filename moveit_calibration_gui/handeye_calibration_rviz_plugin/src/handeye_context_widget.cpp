@@ -238,6 +238,18 @@ ContextTabWidget::ContextTabWidget(QWidget* parent) : QWidget(parent), tf_listen
   guess_pose_.insert(std::make_pair("Rz", new SliderWidget(this, "Yaw", -M_PI, M_PI)));
   pose_layout->addRow(guess_pose_["Rz"]);
 
+  guess_pose_.insert(std::make_pair("Qx", new SliderWidget(this, "Qx", -1., 1.)));
+  pose_layout->addRow(guess_pose_["Qx"]);
+
+  guess_pose_.insert(std::make_pair("Qy", new SliderWidget(this, "Qy", -1., 1.)));
+  pose_layout->addRow(guess_pose_["Qy"]);
+
+  guess_pose_.insert(std::make_pair("Qz", new SliderWidget(this, "Qz", -1., 1.)));
+  pose_layout->addRow(guess_pose_["Qz"]);
+
+  guess_pose_.insert(std::make_pair("Qw", new SliderWidget(this, "Qw", -1., 1.)));
+  pose_layout->addRow(guess_pose_["Qw"]);
+
   for (std::pair<const std::string, SliderWidget*>& dim : guess_pose_)
   {
     dim.second->setValue(0);
@@ -506,7 +518,8 @@ void ContextTabWidget::setOpticalFrame(const std::string& frame_id)
   updateFOVPose();
 }
 
-void ContextTabWidget::updateCameraPose(double tx, double ty, double tz, double rx, double ry, double rz)
+void ContextTabWidget::updateCameraPose(double tx, double ty, double tz, double rx, double ry, double rz, double qx,
+                                        double qy, double qz, double qw)
 {
   // setCameraPose(tx, ty, tz, rx, ry, rz);
   guess_pose_["Tx"]->setValue(tx);
@@ -515,6 +528,10 @@ void ContextTabWidget::updateCameraPose(double tx, double ty, double tz, double 
   guess_pose_["Rx"]->setValue(rx);
   guess_pose_["Ry"]->setValue(ry);
   guess_pose_["Rz"]->setValue(rz);
+  guess_pose_["Qx"]->setValue(qx);
+  guess_pose_["Qy"]->setValue(qy);
+  guess_pose_["Qz"]->setValue(qz);
+  guess_pose_["Qw"]->setValue(qw);
   updateCameraMarkerPose(0);
 }
 

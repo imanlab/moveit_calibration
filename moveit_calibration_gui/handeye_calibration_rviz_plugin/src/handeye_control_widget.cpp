@@ -385,7 +385,8 @@ bool ControlTabWidget::solveCameraRobotPose()
       // Update camera pose guess in context tab
       Eigen::Vector3d t = camera_robot_pose_.translation();
       Eigen::Vector3d r = camera_robot_pose_.rotation().eulerAngles(0, 1, 2);
-      Q_EMIT sensorPoseUpdate(t[0], t[1], t[2], r[0], r[1], r[2]);
+      Eigen::Quaterniond q(camera_robot_pose_.rotation());
+      Q_EMIT sensorPoseUpdate(t[0], t[1], t[2], r[0], r[1], r[2], q.x(), q.y(), q.z(), q.w());
 
       // Publish camera pose tf
       std::string& from_frame = frame_names_[from_frame_tag_];

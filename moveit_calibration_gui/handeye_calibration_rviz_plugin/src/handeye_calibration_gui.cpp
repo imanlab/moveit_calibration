@@ -74,8 +74,10 @@ HandEyeCalibrationGui::HandEyeCalibrationGui(QWidget* parent) : rviz::Panel(pare
   connect(tab_context_, SIGNAL(sensorMountTypeChanged(int)), tab_control_, SLOT(UpdateSensorMountType(int)));
   connect(tab_context_, SIGNAL(frameNameChanged(std::map<std::string, std::string>)), tab_control_,
           SLOT(updateFrameNames(std::map<std::string, std::string>)));
-  connect(tab_control_, SIGNAL(sensorPoseUpdate(double, double, double, double, double, double)), tab_context_,
-          SLOT(updateCameraPose(double, double, double, double, double, double)));
+  connect(tab_control_,
+          SIGNAL(sensorPoseUpdate(double, double, double, double, double, double, double, double, double, double)),
+          tab_context_,
+          SLOT(updateCameraPose(double, double, double, double, double, double, double, double, double, double)));
 
   tabs->addTab(tab_target_, "Target");
   tabs->addTab(tab_context_, "Context");
