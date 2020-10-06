@@ -10,6 +10,7 @@ endif()
 
 find_package(catkin REQUIRED COMPONENTS
   class_loader
+  cv_bridge
   geometric_shapes
   moveit_calibration_plugins
   moveit_ros_perception
@@ -52,6 +53,7 @@ catkin_package(
   INCLUDE_DIRS
     handeye_calibration_rviz_plugin/include
   CATKIN_DEPENDS
+    cv_bridge
     moveit_ros_perception
     moveit_ros_planning_interface
     moveit_visual_tools
