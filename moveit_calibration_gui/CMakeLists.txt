@@ -12,12 +12,14 @@ find_package(catkin REQUIRED COMPONENTS
   class_loader
   cv_bridge
   geometric_shapes
+  image_geometry
   moveit_calibration_plugins
+  moveit_core
   moveit_ros_perception
+  moveit_ros_planning
   moveit_ros_planning_interface
   moveit_ros_visualization
   moveit_visual_tools
-  image_geometry
   pluginlib
   rosconsole
   roscpp
@@ -54,10 +56,12 @@ catkin_package(
     handeye_calibration_rviz_plugin/include
   CATKIN_DEPENDS
     cv_bridge
+    moveit_calibration_plugins
+    moveit_core
     moveit_ros_perception
+    moveit_ros_planning
     moveit_ros_planning_interface
     moveit_visual_tools
-    moveit_calibration_plugins
     roscpp
     rviz
     rviz_visual_tools
