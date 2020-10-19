@@ -36,18 +36,23 @@
 
 #include <moveit/handeye_calibration_solver/handeye_solver_default.h>
 
-#if PY_MAJOR_VERSION >= 3
-  #define PyInt_AsLong                 PyLong_AsLong
-  #define PyString_FromString          PyUnicode_FromString
-#endif
-
 namespace moveit_handeye_calibration
 {
 const std::string LOGNAME = "handeye_solver_default";
 
 void HandEyeSolverDefault::initialize()
 {
-  solver_names_ = { "Daniilidis1999", "ParkBryan1994", "TsaiLenz1989" };
+  solver_map_.insert("Daniilidis1999", cv::HandEyeCalibrationMethod::CALIB_HAND_EYE_DANIILIDIS);
+  solver_map_.insert("ParkMartin1994", cv::HandEyeCalibrationMethod::CALIB_HAND_EYE_PARK);
+  solver_map_.insert("TsaiLenz1989", cv::HandEyeCalibrationMethod::CALIB_HAND_EYE_DANIILIDIS);
+  solver_map_.insert("HoraudDornaika1995", cv::HandEyeCalibrationMethod::CALIB_HAND_EYE_HORAUD);
+  solver_map_.insert("AndreffEtAl1999", cv::HandEyeCalibrationMethod::CALIB_HAND_EYE_ANDREFF);
+
+  for (const auto& solver_pair : solver_map_)
+  {
+    solver_names_.push_back(solver_pair.first);
+  }
+
   camera_robot_pose_ = Eigen::Isometry3d::Identity();
 }
 
@@ -72,7 +77,7 @@ bool HandEyeSolverDefault::solve(const std::vector<Eigen::Isometry3d>& effector_
                                     "vectors are not equal: "
                                     "effector_wrt_world.size() = "
                                         << effector_wrt_world.size()
-                                        << " and object_wrt_sensor.size() == " << object_wrt_sensor.size());
+                                        << " and object_wrt_sensor.size() = " << object_wrt_sensor.size());
     return false;
   }
 
@@ -83,327 +88,44 @@ bool HandEyeSolverDefault::solve(const std::vector<Eigen::Isometry3d>& effector_
     return false;
   }
 
-  char program_name[7] = "python";
-  #if PY_MAJOR_VERSION >= 3
-    Py_SetProgramName(Py_DecodeLocale(program_name, NULL));
-  #else
-    Py_SetProgramName(program_name);
-  #endif
-  static bool numpy_loaded{ false };
-  if (!numpy_loaded)  // Py_Initialize() can only be called once when numpy is
-                      // loaded, otherwise will segfault
+  size_t num_poses = effector_wrt_world.size();
+
+  // OpenCV inputs
+  std::vector<cv::Mat> R_gripper_to_base(num_poses);
+  std::vector<cv::Mat> t_gripper_to_base(num_poses);
+  std::vector<cv::Mat> R_target_to_cam(num_poses);
+  std::vector<cv::Mat> t_target_to_cam(num_poses);
+  cv::Mat R_cam_to_gripper;
+  cv::Mat t_cam_to_gripper;
+
+  for (size_t i = 0; i < num_poses; ++i)
   {
-    Py_Initialize();
-    atexit(Py_Finalize);
-    numpy_loaded = true;
+    cv::eigen2cv(effector_wrt_world[i].linear(), R_gripper_to_base[i]);
+    cv::eigen2cv(effector_wrt_world[i].translation(), t_gripper_to_base[i]);
+    if (setup == EYE_IN_HAND)
+    {
+      cv::eigen2cv(object_wrt_sensor[i].linear(), R_target_to_cam[i]);
+      cv::eigen2cv(object_wrt_sensor[i].translation(), t_target_to_cam[i]);
+    }
+    else if (setup == EYE_TO_HAND)
+    {
+      cv::eigen2cv(object_wrt_sensor[i].inverse().linear(), R_target_to_cam[i]);
+      cv::eigen2cv(object_wrt_sensor[i].inverse().translation(), t_target_to_cam[i]);
+    }
   }
-  ROS_DEBUG_STREAM_NAMED(LOGNAME, "Python C API start");
-
-  // Load numpy c api
-  if (_import_array() < 0)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Error importing numpy: ");
-    return false;
-  }
-
-  PyObject *python_name, *python_module, *python_class, *python_instance, *python_func_add_sample, *python_func_solve;
-  PyObject *python_args, *python_value;
-
-  // Import handeye.calibrator python module
-  python_name = PyString_FromString("handeye.calibrator");
-  python_module = PyImport_Import(python_name);
-  Py_DECREF(python_name);
-  if (!python_module)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load python module: "
-                                        << "handeye.calibrator");
-    PyErr_Print();
-    return false;
-  }
-
-  // Find handeye.calibrator.HandEyeCalibrator class
-  python_class = PyObject_GetAttrString(python_module, "HandEyeCalibrator");
-  Py_DECREF(python_module);
-  if (!python_class || !PyCallable_Check(python_class))
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't find \"HandEyeCalibrator\" python class");
-    PyErr_Print();
-    return false;
-  }
-
-  // Parse sensor mount type
-  python_value = PyString_FromString("");
+  cv::calibrateHandEye(R_gripper_to_base, t_gripper_to_base, R_target_to_cam, t_target_to_cam, R_cam_to_gripper,
+                       t_cam_to_gripper, solver_map_(solver_name));
   if (setup == EYE_TO_HAND)
-    python_value = PyString_FromString("Fixed");
-  else if (setup == EYE_IN_HAND)
-    python_value = PyString_FromString("Moving");
-  if (!python_value)
   {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't creat sensor mount type python value");
-    Py_DECREF(python_class);
-    PyErr_Print();
-    return false;
+    // TODO: I think we just got the gripper-to-target transform
   }
 
-  // Create handeye.calibrator.HandEyeCalibrator instance
-  python_args = PyTuple_New(1);
-  PyTuple_SetItem(python_args, 0, python_value);
-  if (!python_args)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't build python arguments");
-    Py_DECREF(python_class);
-    PyErr_Print();
-    return false;
-  }
-  python_instance = PyEval_CallObject(python_class, python_args);
-  Py_DECREF(python_args);
-  Py_DECREF(python_class);
-  if (!python_instance)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't create \"HandEyeCalibrator\" python instance");
-    PyErr_Print();
-    return false;
-  }
+  Eigen::Matrix4d T_cam_to_gripper_eig = Eigen::Matrix4d::Identity();
+  cv::cv2eigen(R_cam_to_gripper, T_cam_to_gripper_eig.block<3, 3>(0, 0));
+  cv::cv2eigen(t_cam_to_gripper, T_cam_to_gripper_eig.block<3, 1>(0, 3));
 
-  // Find handeye.calibrator.HandEyeCalibrator.add_sample method
-  python_func_add_sample = PyObject_GetAttrString(python_instance, "add_sample");
-  if (!python_func_add_sample || !PyCallable_Check(python_func_add_sample))
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't find 'add_sample' method");
-    Py_DECREF(python_instance);
-    PyErr_Print();
-    return false;
-  }
+  camera_robot_pose_ = Eigen::Isometry3d(T_cam_to_gripper_eig);
 
-  // Add sample poses to handeye.calibrator.HandEyeCalibrator instance
-  size_t number_of_poses = effector_wrt_world.size();
-  PyArrayObject *numpy_arg_eef_wrt_base[number_of_poses], *numpy_arg_obj_wrt_sensor[number_of_poses];
-  PyObject *python_array_eef_wrt_base[number_of_poses], *python_array_obj_wrt_sensor[number_of_poses];
-  PyObject* python_args_sample[number_of_poses];
-  npy_intp dims[2]{ TRANSFORM_MATRIX_DIMENSION, TRANSFORM_MATRIX_DIMENSION };
-  const int number_of_dims{ 2 };
-  // Using C array to store the pyarray data, which will be automatically freed
-  double c_arr_eef_wrt_world[number_of_poses][TRANSFORM_MATRIX_DIMENSION][TRANSFORM_MATRIX_DIMENSION];
-  double c_arr_obj_wrt_sensor[number_of_poses][TRANSFORM_MATRIX_DIMENSION][TRANSFORM_MATRIX_DIMENSION];
-  for (size_t i = 0; i < number_of_poses; ++i)
-  {
-    // Convert effector_wrt_world[i] from Eigen::isometry3d to C array
-    if (!toCArray(effector_wrt_world[i], c_arr_eef_wrt_world[i]))
-    {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Error converting Eigen::isometry3d to C array");
-      Py_DECREF(python_func_add_sample);
-      Py_DECREF(python_instance);
-      PyErr_Print();
-      return false;
-    }
-
-    // From C array to PyArrayObject
-    python_array_eef_wrt_base[i] =
-        PyArray_SimpleNewFromData(number_of_dims, dims, NPY_DOUBLE, (void*)(c_arr_eef_wrt_world[i]));
-    if (!python_array_eef_wrt_base[i])
-    {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Error creating PyArray object");
-      Py_DECREF(python_func_add_sample);
-      Py_DECREF(python_instance);
-      PyErr_Print();
-      return false;
-    }
-    numpy_arg_eef_wrt_base[i] = (PyArrayObject*)(python_array_eef_wrt_base[i]);
-    if (PyArray_NDIM(numpy_arg_eef_wrt_base[i]) == 2)  // Check PyArrayObject dims are 4x4
-    {
-      npy_intp* py_array_dims = PyArray_DIMS(numpy_arg_eef_wrt_base[i]);
-      if (py_array_dims[0] != 4 || py_array_dims[1] != 4)
-      {
-        ROS_ERROR_STREAM_NAMED(LOGNAME, "Error PyArrayObject dims: " << py_array_dims[0] << "x" << py_array_dims[1]);
-        Py_DECREF(numpy_arg_eef_wrt_base[i]);
-        Py_DECREF(python_func_add_sample);
-        Py_DECREF(python_instance);
-        return false;
-      }
-    }
-
-    // Convert object_wrt_sensor[i] from Eigen::isometry3d to C array
-    if (!toCArray(object_wrt_sensor[i], c_arr_obj_wrt_sensor[i]))
-    {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Error converting Eigen::isometry3d to C array");
-      Py_DECREF(python_func_add_sample);
-      Py_DECREF(python_instance);
-      PyErr_Print();
-      return false;
-    }
-
-    // From C array to PyArrayObject
-    python_array_obj_wrt_sensor[i] =
-        PyArray_SimpleNewFromData(number_of_dims, dims, NPY_DOUBLE, (void*)(c_arr_obj_wrt_sensor[i]));
-    if (!python_array_obj_wrt_sensor[i])
-    {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Error creating PyArray object");
-      Py_DECREF(python_func_add_sample);
-      Py_DECREF(python_instance);
-      PyErr_Print();
-      return false;
-    }
-    numpy_arg_obj_wrt_sensor[i] = (PyArrayObject*)(python_array_obj_wrt_sensor[i]);
-    if (PyArray_NDIM(numpy_arg_obj_wrt_sensor[i]) == 2)  // Check PyArrayObject dims are 4x4
-    {
-      npy_intp* py_array_dims = PyArray_DIMS(numpy_arg_obj_wrt_sensor[i]);
-      if (py_array_dims[0] != 4 || py_array_dims[1] != 4)
-      {
-        ROS_ERROR_STREAM_NAMED(LOGNAME, "Error PyArrayObject dims: " << py_array_dims[0] << "x" << py_array_dims[1]);
-        Py_DECREF(numpy_arg_obj_wrt_sensor[i]);
-        Py_DECREF(python_func_add_sample);
-        Py_DECREF(python_instance);
-        return false;
-      }
-    }
-
-    // Assign sample poses to 'HandEyeCalibrator' instance
-    python_args_sample[i] = Py_BuildValue("OO", numpy_arg_eef_wrt_base[i], numpy_arg_obj_wrt_sensor[i]);
-    if (!python_args_sample[i])
-    {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't create argument tuple for 'add_sample' method");
-      Py_DECREF(python_func_add_sample);
-      Py_DECREF(python_instance);
-      PyErr_Print();
-      return false;
-    }
-    python_value = PyEval_CallObject(python_func_add_sample, python_args_sample[i]);
-    if (!python_value)
-    {
-      ROS_ERROR_STREAM_NAMED(LOGNAME, "Error calling 'add_sample' method");
-      Py_DECREF(python_func_add_sample);
-      Py_DECREF(python_instance);
-      PyErr_Print();
-      return false;
-    }
-    ROS_DEBUG_STREAM_NAMED(LOGNAME, "num_samples: " << PyInt_AsLong(python_value));
-    Py_DECREF(python_value);
-  }
-  Py_DECREF(python_func_add_sample);
-
-  // print the pair of transforms as python arguments
-  for (size_t i = 0; i < number_of_poses; i++)
-  {
-    std::stringstream ss;
-    ss << "\nnp_arg_eef_wrt_base";
-    for (size_t m = 0; m < TRANSFORM_MATRIX_DIMENSION; m++)
-    {
-      ss << "\n";
-      for (size_t n = 0; n < TRANSFORM_MATRIX_DIMENSION; n++)
-        ss << *(double*)PyArray_GETPTR2(numpy_arg_eef_wrt_base[i], m, n) << " ";
-    }
-    ss << "\nnp_arg_obj_wrt_sensor";
-    for (size_t m = 0; m < TRANSFORM_MATRIX_DIMENSION; m++)
-    {
-      ss << "\n";
-      for (size_t n = 0; n < TRANSFORM_MATRIX_DIMENSION; n++)
-        ss << *(double*)PyArray_GETPTR2(numpy_arg_obj_wrt_sensor[i], m, n) << " ";
-    }
-    ROS_DEBUG_STREAM_NAMED(LOGNAME, ss.str());
-  }
-
-  // Import handeye.solver python module
-  python_name = PyString_FromString("handeye.solver");
-  python_module = PyImport_Import(python_name);
-  Py_DECREF(python_name);
-  if (!python_module)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Failed to load python module: "
-                                        << "handeye.solver");
-    Py_DECREF(python_instance);
-    PyErr_Print();
-    return false;
-  }
-
-  // Find handeye.solver.solver_name class
-  python_class = PyObject_GetAttrString(python_module, solver_name.c_str());
-  Py_DECREF(python_module);
-  if (!python_class || !PyCallable_Check(python_class))
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't find \"" << solver_name << "\" python class");
-    Py_DECREF(python_instance);
-    PyErr_Print();
-    return false;
-  }
-
-  // Find handeye.calibrator.HandEyeCalibrator.solve method
-  python_func_solve = PyObject_GetAttrString(python_instance, "solve");
-  if (!python_func_solve || !PyCallable_Check(python_func_solve))
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't find 'solve' method");
-    Py_DECREF(python_class);
-    Py_DECREF(python_instance);
-    PyErr_Print();
-    return false;
-  }
-
-  // Create argument list for 'solve' method
-  python_args = Py_BuildValue("{s:O}", "method", python_class);
-  Py_DECREF(python_class);
-  if (!python_args)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Can't create argument tuple for 'solve' method");
-    Py_DECREF(python_instance);
-    PyErr_Print();
-    return false;
-  }
-
-  // Call 'solve' method to solve AX=XB problem
-  python_value = PyEval_CallObjectWithKeywords(python_func_solve, nullptr, python_args);
-  Py_DECREF(python_args);
-  Py_DECREF(python_func_solve);
-  for (size_t i = 0; i < number_of_poses; ++i)
-    Py_DECREF(python_args_sample[i]);
-  Py_DECREF(python_instance);
-  if (!python_value)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Error calling 'solve' method");
-    PyErr_Print();
-    return false;
-  }
-  PyArrayObject* np_ret = (PyArrayObject*)python_value;
-  if (!PyArray_Check(python_value) || PyArray_NDIM(np_ret) != 2 || PyArray_NBYTES(np_ret) != sizeof(double) * 16)
-  {
-    ROS_ERROR_STREAM_NAMED(LOGNAME, "Did not return a valid array");
-    Py_DECREF(python_value);
-    PyErr_Print();
-    return false;
-  }
-
-  std::stringstream ss;
-  ss << "\n Result camera-robot pose";
-  for (size_t m = 0; m < TRANSFORM_MATRIX_DIMENSION; m++)
-  {
-    ss << "\n";
-    for (size_t n = 0; n < TRANSFORM_MATRIX_DIMENSION; n++)
-    {
-      double item = *(double*)PyArray_GETPTR2(np_ret, m, n);
-      camera_robot_pose_(m, n) = item;
-      ss << item << " ";
-    }
-  }
-  ROS_DEBUG_STREAM_NAMED(LOGNAME, ss.str());
-
-  Py_DECREF(python_value);
-  ROS_DEBUG_STREAM_NAMED(LOGNAME, "Python C API end");
   return true;
 }
-
-bool HandEyeSolverDefault::toCArray(const Eigen::Isometry3d& pose, double (*c_arr)[TRANSFORM_MATRIX_DIMENSION]) const
-{
-  const Eigen::MatrixXd& mat = pose.matrix();
-
-  if (mat.rows() != TRANSFORM_MATRIX_DIMENSION || mat.cols() != TRANSFORM_MATRIX_DIMENSION)
-  {
-    ROS_ERROR_NAMED(LOGNAME, "Error matrix dims: %zux%zu, required %dx%d", mat.rows(), mat.cols(),
-                    TRANSFORM_MATRIX_DIMENSION, TRANSFORM_MATRIX_DIMENSION);
-    return false;
-  }
-
-  for (size_t i = 0; i < TRANSFORM_MATRIX_DIMENSION; ++i)
-    for (size_t j = 0; j < TRANSFORM_MATRIX_DIMENSION; ++j)
-      c_arr[i][j] = mat(i, j);
-  return true;
-}
-
 }  // namespace moveit_handeye_calibration
