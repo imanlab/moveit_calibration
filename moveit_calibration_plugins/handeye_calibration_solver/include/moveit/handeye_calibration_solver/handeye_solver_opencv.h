@@ -63,8 +63,10 @@ public:
   virtual const Eigen::Isometry3d& getCameraRobotPose() const override;
 
 private:
-  std::vector<std::string> solver_names_;  // Solver algorithm names
-  Eigen::Isometry3d camera_robot_pose_;    // Computed camera pose with respect to a robot
+  // Map of solver algorithm name to CV type
+  static const std::map<std::string, cv::HandEyeCalibrationMethod> solvers_;
+  static const std::vector<std::string> solver_names_;
+  Eigen::Isometry3d camera_robot_pose_;  // Computed camera pose with respect to a robot
 };
 
 }  // namespace moveit_handeye_calibration

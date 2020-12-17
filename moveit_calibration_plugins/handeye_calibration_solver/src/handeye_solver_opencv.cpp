@@ -41,9 +41,25 @@ namespace moveit_handeye_calibration
 {
 const std::string LOGNAME = "handeye_solver_opencv";
 
+const std::map<std::string, cv::HandEyeCalibrationMethod> HandEyeSolverOpenCV::solvers_ = {
+  { "Daniilidis1999", cv::CALIB_HAND_EYE_DANIILIDIS },
+  { "ParkMartin", cv::CALIB_HAND_EYE_PARK },
+  { "TsaiLenz1989", cv::CALIB_HAND_EYE_TSAI },
+  { "HoraudDornaika1995", cv::CALIB_HAND_EYE_HORAUD },
+  { "Andreff1999", cv::CALIB_HAND_EYE_ANDREFF }
+};
+
+const std::vector<std::string> HandEyeSolverOpenCV::solver_names_ = []() {
+  std::vector<std::string> solver_names;
+  for (const auto& solver_pair : solvers_)
+  {
+    solver_names.push_back(solver_pair.first);
+  }
+  return solver_names;
+}();
+
 void HandEyeSolverOpenCV::initialize()
 {
-  solver_names_ = { "Daniilidis1999", "ParkMartin", "TsaiLenz1989", "HoraudDornaika1995", "Andreff1999" };
   camera_robot_pose_ = Eigen::Isometry3d::Identity();
 }
 
@@ -98,8 +114,8 @@ bool HandEyeSolverOpenCV::solve(const std::vector<Eigen::Isometry3d>& effector_w
   }
 
   cv::Mat R_cam_to_eef, t_cam_to_eef;
-  cv::calibrateHandEye(R_eef_to_base, t_eef_to_base, R_obj_to_cam, t_obj_to_cam, R_cam_to_eef,
-                       t_cam_to_eef /*, method*/);
+  cv::calibrateHandEye(R_eef_to_base, t_eef_to_base, R_obj_to_cam, t_obj_to_cam, R_cam_to_eef, t_cam_to_eef,
+                       solvers_.at(solver_name));
 
   // copy result into output
 
