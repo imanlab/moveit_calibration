@@ -43,7 +43,7 @@ namespace moveit_rviz_plugin
 {
 HandEyeCalibrationGui::HandEyeCalibrationGui(QWidget* parent) : rviz::Panel(parent)
 {
-  setMinimumSize(695, 460);
+  setMinimumSize(695, 560);
   // Basic widget container
   QVBoxLayout* layout = new QVBoxLayout();
   setLayout(layout);
@@ -82,6 +82,18 @@ HandEyeCalibrationGui::HandEyeCalibrationGui(QWidget* parent) : rviz::Panel(pare
   tabs->addTab(tab_control_, "Calibrate");
   layout->addWidget(tabs);
 
+  save_all_params_layout_ = new QHBoxLayout();
+
+  load_all_params_btn_ = new QPushButton("Load all parameters");
+  connect(load_all_params_btn_, SIGNAL(clicked(bool)), this, SLOT(loadAllParamsBtnClicked(bool)));
+  save_all_params_layout_->addWidget(load_all_params_btn_);
+
+  save_all_params_btn_ = new QPushButton("Save all parameters");
+  connect(save_all_params_btn_, SIGNAL(clicked(bool)), this, SLOT(saveAllParamsBtnClicked(bool)));
+  save_all_params_layout_->addWidget(save_all_params_btn_);
+
+  layout->addLayout(save_all_params_layout_);
+
   ROS_INFO_STREAM("handeye calibration gui created.");
 }
 
@@ -105,6 +117,14 @@ void HandEyeCalibrationGui::load(const rviz::Config& config)
   tab_control_->loadWidget(config);
 
   ROS_INFO_STREAM("handeye calibration gui loaded.");
+}
+
+void HandEyeCalibrationGui::saveAllParamsBtnClicked(bool clicked)
+{
+}
+
+void HandEyeCalibrationGui::loadAllParamsBtnClicked(bool clicked)
+{
 }
 
 }  // namespace moveit_rviz_plugin

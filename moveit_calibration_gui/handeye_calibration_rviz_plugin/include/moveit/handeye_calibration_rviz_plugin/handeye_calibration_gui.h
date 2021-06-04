@@ -64,6 +64,9 @@ public:
   virtual void load(const rviz::Config& config);
   virtual void save(rviz::Config config) const;
 
+  void saveAllParamsBtnClicked(bool clicked);
+  void loadAllParamsBtnClicked(bool clicked);
+
 private:
   // ******************************************************************************************
   // Qt Components
@@ -72,6 +75,9 @@ private:
   TargetTabWidget* tab_target_;
   ContextTabWidget* tab_context_;
   ControlTabWidget* tab_control_;
+  QHBoxLayout* save_all_params_layout_;
+  QPushButton* save_all_params_btn_;
+  QPushButton* load_all_params_btn_;
 
   // ******************************************************************************************
   // Ros Components
