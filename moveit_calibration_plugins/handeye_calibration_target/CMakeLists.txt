@@ -4,8 +4,11 @@ set(HEADERS
   include/moveit/handeye_calibration_target/handeye_target_charuco.h
 )
 
+find_package(yaml-cpp REQUIRED)
+
 #catkin_lint: ignore_once missing_directory
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_BINARY_DIR}
+                    ${YAML_CPP_INCLUDE_DIR})
 
 # Plugin Source
 set(SOURCE_FILES
@@ -16,7 +19,11 @@ set(SOURCE_FILES
 set(MOVEIT_LIB_NAME moveit_handeye_calibration_target)
 add_library(${MOVEIT_LIB_NAME}_core ${SOURCE_FILES} ${HEADERS})
 set_target_properties(${MOVEIT_LIB_NAME}_core PROPERTIES VERSION "${${PROJECT_NAME}_VERSION}")
-target_link_libraries(${MOVEIT_LIB_NAME}_core ${catkin_LIBRARIES} ${OpenCV_LIBS} ${Boost_LIBRARIES})
+target_link_libraries(${MOVEIT_LIB_NAME}_core
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
+  ${Boost_LIBRARIES}
+  ${YAML_CPP_LIBRARIES})
 
 add_library(${MOVEIT_LIB_NAME} src/plugin_init.cpp)
 set_target_properties(${MOVEIT_LIB_NAME} PROPERTIES VERSION "${${PROJECT_NAME}_VERSION}")
