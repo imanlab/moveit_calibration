@@ -65,6 +65,8 @@
 #include <rviz/panel.h>
 #endif
 
+#include <yaml-cpp/yaml.h>
+
 namespace rvt = rviz_visual_tools;
 namespace mhc = moveit_handeye_calibration;
 
@@ -174,6 +176,8 @@ public:
                                                 rvt::colors color, double alpha, std::string frame_id);
 
   void setCameraPose(double tx, double ty, double tz, double rx, double ry, double rz);
+
+  YAML::Node serializeAllParams();
 
 public Q_SLOTS:
 

@@ -56,6 +56,8 @@ public:
 
   virtual bool detectTargetPose(cv::Mat& image) override;
 
+  virtual YAML::Node serializeParameters() const override;
+
 protected:
   virtual bool setTargetIntrinsicParams(int markers_x, int markers_y, int marker_size_pixels, int square_size_pixels,
                                         int border_size_bits, int margin_size_pixels, const std::string& dictionary_id);
@@ -74,6 +76,7 @@ private:
   int border_size_bits_;                                 // Marker border width, in bits
   int margin_size_pixels_;                               // Margin of white pixels around entire board
   cv::aruco::PREDEFINED_DICTIONARY_NAME dictionary_id_;  // Marker dictionary id
+  std::string dictionary_name_;                          // Marker dictionary name
 
   // Target real dimensions in meters
   double board_size_meters_;   // Printed board size, longest dimension

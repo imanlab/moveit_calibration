@@ -152,6 +152,10 @@ public:
 
   void computeExecution();
 
+  YAML::Node serializeAllParams();
+
+  YAML::Node serializeJointStates();
+
 Q_SIGNALS:
 
   void sensorPoseUpdate(double x, double y, double z, double rx, double ry, double rz);

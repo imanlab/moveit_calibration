@@ -121,6 +121,16 @@ void HandEyeCalibrationGui::load(const rviz::Config& config)
 
 void HandEyeCalibrationGui::saveAllParamsBtnClicked(bool clicked)
 {
+  YAML::Node root;
+  root["target_params"] = tab_target_->serializeAllParams();
+  root["context_params"] = tab_context_->serializeAllParams();
+  root["control_params"] = tab_control_->serializeAllParams();
+  YAML::Emitter output;
+  output << root;
+
+  std::ofstream yaml_file_out("handeye-cal-config.yaml");
+  yaml_file_out << output.c_str();
+  yaml_file_out.close();
 }
 
 void HandEyeCalibrationGui::loadAllParamsBtnClicked(bool clicked)

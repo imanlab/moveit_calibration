@@ -487,6 +487,27 @@ void ContextTabWidget::setCameraPose(double tx, double ty, double tz, double rx,
   camera_pose_ = visual_tools_->convertFromXYZRPY(tx, ty, tz, rx, ry, rz, rviz_visual_tools::XYZ);
 }
 
+YAML::Node ContextTabWidget::serializeAllParams()
+{
+  YAML::Node context_params;
+  context_params["sensor_mount_type"] = sensor_mount_type_->currentIndex();
+
+  for (std::pair<const std::string, TFFrameNameComboBox*>& frame : frames_)
+  {
+    context_params[frame.first.c_str()] = frame.second->currentText().toStdString();
+  }
+
+  context_params["fov_transparent"] = fov_alpha_->getValue();
+  context_params["fov_on_off"] = fov_on_off_->isChecked();
+
+  for (std::pair<const std::string, SliderWidget*>& dim : guess_pose_)
+  {
+    context_params[dim.first.c_str()] = dim.second->getValue();
+  }
+
+  return context_params;
+}
+
 void ContextTabWidget::setCameraInfo(sensor_msgs::CameraInfo camera_info)
 {
   camera_info_->header = camera_info.header;

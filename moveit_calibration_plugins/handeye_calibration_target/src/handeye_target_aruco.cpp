@@ -75,27 +75,27 @@ bool HandEyeArucoTarget::initialize()
   int marker_size;
   int separation;
   int border_bits;
-  std::string dictionary_id;
+  std::string dictionary_name;
   float marker_measured_size;
   float marker_measured_separation;
 
   target_params_ready_ =
       getParameter("markers, X", markers_x) && getParameter("markers, Y", markers_y) &&
       getParameter("marker size (px)", marker_size) && getParameter("marker separation (px)", separation) &&
-      getParameter("marker border (bits)", border_bits) && getParameter("ArUco dictionary", dictionary_id) &&
+      getParameter("marker border (bits)", border_bits) && getParameter("ArUco dictionary", dictionary_name) &&
       getParameter("measured marker size (m)", marker_measured_size) &&
       getParameter("measured separation (m)", marker_measured_separation) &&
-      setTargetIntrinsicParams(markers_x, markers_y, marker_size, separation, border_bits, dictionary_id) &&
+      setTargetIntrinsicParams(markers_x, markers_y, marker_size, separation, border_bits, dictionary_name) &&
       setTargetDimension(marker_measured_size, marker_measured_separation);
 
   return target_params_ready_;
 }
 
 bool HandEyeArucoTarget::setTargetIntrinsicParams(int markers_x, int markers_y, int marker_size, int separation,
-                                                  int border_bits, const std::string& dictionary_id)
+                                                  int border_bits, const std::string& dictionary_name)
 {
   if (markers_x <= 0 || markers_y <= 0 || marker_size <= 0 || separation <= 0 || border_bits <= 0 ||
-      marker_dictionaries_.find(dictionary_id) == marker_dictionaries_.end())
+      marker_dictionaries_.find(dictionary_name) == marker_dictionaries_.end())
   {
     ROS_ERROR_STREAM_THROTTLE_NAMED(2., LOGNAME,
                                     "Invalid target intrinsic params.\n"
@@ -104,7 +104,7 @@ bool HandEyeArucoTarget::setTargetIntrinsicParams(int markers_x, int markers_y, 
                                         << "marker_size " << std::to_string(marker_size) << "\n"
                                         << "separation " << std::to_string(separation) << "\n"
                                         << "border_bits " << std::to_string(border_bits) << "\n"
-                                        << "dictionary_id " << dictionary_id << "\n");
+                                        << "dictionary_name " << dictionary_name << "\n");
     return false;
   }
 
@@ -115,8 +115,9 @@ bool HandEyeArucoTarget::setTargetIntrinsicParams(int markers_x, int markers_y, 
   separation_ = separation;
   border_bits_ = border_bits;
 
-  const auto& it = marker_dictionaries_.find(dictionary_id);
+  const auto& it = marker_dictionaries_.find(dictionary_name);
   dictionary_id_ = it->second;
+  dictionary_name_ = dictionary_name;
 
   return true;
 }
@@ -230,6 +231,22 @@ bool HandEyeArucoTarget::detectTargetPose(cv::Mat& image)
   }
 
   return true;
+}
+
+YAML::Node HandEyeArucoTarget::serializeParameters() const
+{
+  YAML::Node root;
+  root["target_type"] = "aruco";
+  root["markers"].push_back(markers_x_);
+  root["markers"].push_back(markers_y_);
+  root["marker_size"] = marker_size_;
+  root["separation"] = separation_;
+  root["border_bits"] = border_bits_;
+  root["aruco_dictionary"] = dictionary_name_;
+  root["marker_size_meters"] = marker_size_real_;
+  root["separation_meters"] = marker_separation_real_;
+
+  return root;
 }
 
 }  // namespace moveit_handeye_calibration

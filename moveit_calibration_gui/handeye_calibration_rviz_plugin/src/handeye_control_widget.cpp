@@ -701,28 +701,7 @@ void ControlTabWidget::saveJointStateBtnClicked(bool clicked)
   }
 
   YAML::Emitter emitter;
-  emitter << YAML::BeginMap;
-
-  // Joint Names
-  emitter << YAML::Key << "joint_names";
-  emitter << YAML::Value << YAML::BeginSeq;
-  for (size_t i = 0; i < joint_names_.size(); ++i)
-    emitter << YAML::Value << joint_names_[i];
-  emitter << YAML::EndSeq;
-
-  // Joint Values
-  emitter << YAML::Key << "joint_values";
-  emitter << YAML::Value << YAML::BeginSeq;
-  for (size_t i = 0; i < joint_states_.size(); ++i)
-  {
-    emitter << YAML::BeginSeq;
-    for (size_t j = 0; j < joint_states_[i].size(); ++j)
-      emitter << YAML::Value << joint_states_[i][j];
-    emitter << YAML::EndSeq;
-  }
-  emitter << YAML::EndSeq;
-
-  emitter << YAML::EndMap;
+  emitter << serializeJointStates();
 
   QTextStream out(&file);
   out << emitter.c_str();
@@ -995,6 +974,39 @@ void ControlTabWidget::computeExecution()
   }
   else
     ROS_ERROR_STREAM_NAMED(LOGNAME, "Execution failed.");
+}
+
+YAML::Node ControlTabWidget::serializeAllParams()
+{
+  YAML::Node root;
+  root["solver"] = calibration_solver_->currentText().toStdString();
+  root["planning_group"] = group_name_->currentText().toStdString();
+  root["joint_states"] = serializeJointStates();
+  return root;
+}
+
+YAML::Node ControlTabWidget::serializeJointStates()
+{
+  YAML::Node root;
+
+  // Joint Names
+  for (const auto& joint_name : joint_names_)
+  {
+    root["joint_names"].push_back(joint_name);
+  }
+
+  // Joint Values
+  for (const auto& joint_state : joint_states_)
+  {
+    YAML::Node joint_state_yaml;
+    for (const auto& joint_value : joint_state)
+    {
+      joint_state_yaml.push_back(joint_value);
+    }
+    root["joint_values"].push_back(joint_state_yaml);
+  }
+
+  return root;
 }
 
 void ControlTabWidget::planFinished()

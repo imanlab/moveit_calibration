@@ -46,6 +46,7 @@
 #include <tf2_eigen/tf2_eigen.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <opencv2/core/eigen.hpp>
+#include <yaml-cpp/yaml.h>
 
 namespace moveit_handeye_calibration
 {
@@ -401,6 +402,12 @@ public:
     }
     return false;
   }
+
+  /**
+   * @brief Export target parameters to YAML
+   * @return YAML node containing target params
+   */
+  virtual YAML::Node serializeParameters() const = 0;
 
 protected:
   // 3x3 floating-point camera matrix

@@ -74,6 +74,8 @@
 #include <rviz/panel.h>
 #endif
 
+#include <yaml-cpp/yaml.h>
+
 Q_DECLARE_METATYPE(sensor_msgs::CameraInfo);
 Q_DECLARE_METATYPE(std::string);
 
@@ -128,6 +130,8 @@ public:
   void imageCallback(const sensor_msgs::ImageConstPtr& msg);
 
   void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg);
+
+  YAML::Node serializeAllParams();
 
 private Q_SLOTS:
 

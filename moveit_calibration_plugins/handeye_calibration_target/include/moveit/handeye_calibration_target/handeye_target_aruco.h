@@ -56,6 +56,8 @@ public:
 
   virtual bool detectTargetPose(cv::Mat& image) override;
 
+  virtual YAML::Node serializeParameters() const override;
+
 protected:
   virtual bool setTargetIntrinsicParams(int markers_x, int markers_y, int marker_size, int separation, int border_bits,
                                         const std::string& dictionary_id);
@@ -73,6 +75,7 @@ private:
   int separation_;                                       // Marker separation distance in pixels
   int border_bits_;                                      // Margin of boarder in bits
   cv::aruco::PREDEFINED_DICTIONARY_NAME dictionary_id_;  // Marker dictionary id
+  std::string dictionary_name_;                          // Marker dictionary name
 
   // Target real dimensions in meters
   double marker_size_real_;        // Printed marker size

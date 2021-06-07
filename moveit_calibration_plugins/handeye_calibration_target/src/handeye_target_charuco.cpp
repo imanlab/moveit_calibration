@@ -77,7 +77,7 @@ bool HandEyeCharucoTarget::initialize()
   int square_size_pixels;
   int border_size_bits;
   int margin_size_pixels;
-  std::string dictionary_id;
+  std::string dictionary_name;
   double board_size_meters;
   double marker_size_meters;
 
@@ -85,10 +85,10 @@ bool HandEyeCharucoTarget::initialize()
       getParameter("squares, X", squares_x) && getParameter("squares, Y", squares_y) &&
       getParameter("marker size (px)", marker_size_pixels) && getParameter("square size (px)", square_size_pixels) &&
       getParameter("marker border (bits)", border_size_bits) && getParameter("margin size (px)", margin_size_pixels) &&
-      getParameter("ArUco dictionary", dictionary_id) && getParameter("longest board side (m)", board_size_meters) &&
+      getParameter("ArUco dictionary", dictionary_name) && getParameter("longest board side (m)", board_size_meters) &&
       getParameter("measured marker size (m)", marker_size_meters) &&
       setTargetIntrinsicParams(squares_x, squares_y, marker_size_pixels, square_size_pixels, border_size_bits,
-                               margin_size_pixels, dictionary_id) &&
+                               margin_size_pixels, dictionary_name) &&
       setTargetDimension(board_size_meters, marker_size_meters);
 
   return target_params_ready_;
@@ -96,11 +96,11 @@ bool HandEyeCharucoTarget::initialize()
 
 bool HandEyeCharucoTarget::setTargetIntrinsicParams(int squares_x, int squares_y, int marker_size_pixels,
                                                     int square_size_pixels, int border_size_bits,
-                                                    int margin_size_pixels, const std::string& dictionary_id)
+                                                    int margin_size_pixels, const std::string& dictionary_name)
 {
   if (squares_x <= 0 || squares_y <= 0 || marker_size_pixels <= 0 || square_size_pixels <= 0 ||
       margin_size_pixels < 0 || border_size_bits <= 0 || square_size_pixels <= marker_size_pixels ||
-      0 == marker_dictionaries_.count(dictionary_id))
+      0 == marker_dictionaries_.count(dictionary_name))
   {
     ROS_ERROR_STREAM_THROTTLE_NAMED(2., LOGNAME,
                                     "Invalid target intrinsic params.\n"
@@ -110,7 +110,7 @@ bool HandEyeCharucoTarget::setTargetIntrinsicParams(int squares_x, int squares_y
                                         << "square_size_pixels " << std::to_string(square_size_pixels) << "\n"
                                         << "border_size_bits " << std::to_string(border_size_bits) << "\n"
                                         << "margin_size_pixels " << std::to_string(margin_size_pixels) << "\n"
-                                        << "dictionary_id " << dictionary_id << "\n");
+                                        << "dictionary_name " << dictionary_name << "\n");
     return false;
   }
 
@@ -122,8 +122,9 @@ bool HandEyeCharucoTarget::setTargetIntrinsicParams(int squares_x, int squares_y
   border_size_bits_ = border_size_bits;
   margin_size_pixels_ = margin_size_pixels;
 
-  const auto& it = marker_dictionaries_.find(dictionary_id);
+  const auto& it = marker_dictionaries_.find(dictionary_name);
   dictionary_id_ = it->second;
+  dictionary_name_ = dictionary_name;
 
   return true;
 }
@@ -204,7 +205,7 @@ bool HandEyeCharucoTarget::detectTargetPose(cv::Mat& image)
     cv::aruco::detectMarkers(image, dictionary, marker_corners, marker_ids, params_ptr);
     if (marker_ids.empty())
     {
-      ROS_DEBUG_STREAM_THROTTLE_NAMED(1., LOGNAME, "No aruco marker detected. Dictionary ID: " << dictionary_id_);
+      ROS_DEBUG_STREAM_THROTTLE_NAMED(1., LOGNAME, "No aruco marker detected. Dictionary name: " << dictionary_name_);
       return false;
     }
 
@@ -245,6 +246,22 @@ bool HandEyeCharucoTarget::detectTargetPose(cv::Mat& image)
   }
 
   return true;
+}
+
+YAML::Node HandEyeCharucoTarget::serializeParameters() const
+{
+  YAML::Node root;
+  root["target_type"] = "charuco";
+  root["squares"].push_back(squares_x_);
+  root["squares"].push_back(squares_y_);
+  root["marker_size"] = marker_size_pixels_;
+  root["square_size"] = square_size_pixels_;
+  root["margin_size"] = margin_size_pixels_;
+  root["marker_border_bits"] = border_size_bits_;
+  root["aruco_dictionary"] = dictionary_name_;
+  root["board_size_meters"] = board_size_meters_;
+  root["marker_size_meters"] = marker_size_meters_;
+  return root;
 }
 
 }  // namespace moveit_handeye_calibration

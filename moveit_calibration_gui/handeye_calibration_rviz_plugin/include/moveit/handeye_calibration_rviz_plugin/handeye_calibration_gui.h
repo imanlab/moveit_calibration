@@ -64,6 +64,8 @@ public:
   virtual void load(const rviz::Config& config);
   virtual void save(rviz::Config config) const;
 
+private Q_SLOTS:
+
   void saveAllParamsBtnClicked(bool clicked);
   void loadAllParamsBtnClicked(bool clicked);
 

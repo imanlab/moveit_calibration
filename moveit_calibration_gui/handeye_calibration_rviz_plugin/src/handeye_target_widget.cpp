@@ -456,6 +456,18 @@ void TargetTabWidget::cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& 
   }
 }
 
+YAML::Node TargetTabWidget::serializeAllParams()
+{
+  YAML::Node root;
+  root["target"] = target_->serializeParameters();
+  for (const std::pair<const std::string, RosTopicComboBox*>& topic : ros_topics_)
+  {
+    root[topic.first.c_str()] = topic.second->currentText().toStdString();
+  }
+
+  return root;
+}
+
 void TargetTabWidget::targetTypeComboboxChanged(const QString& text)
 {
   if (!text.isEmpty())
