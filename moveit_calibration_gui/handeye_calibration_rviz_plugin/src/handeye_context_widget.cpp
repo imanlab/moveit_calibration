@@ -490,7 +490,7 @@ void ContextTabWidget::setCameraPose(double tx, double ty, double tz, double rx,
 YAML::Node ContextTabWidget::serializeAllParams()
 {
   YAML::Node context_params;
-  context_params["sensor_mount_type"] = sensor_mount_type_->currentIndex();
+  context_params["sensor_mount_type"] = sensor_mount_type_->currentText().toStdString();
 
   for (std::pair<const std::string, TFFrameNameComboBox*>& frame : frames_)
   {

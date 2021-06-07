@@ -121,16 +121,36 @@ void HandEyeCalibrationGui::load(const rviz::Config& config)
 
 void HandEyeCalibrationGui::saveAllParamsBtnClicked(bool clicked)
 {
+  // DontUseNativeDialog option set to avoid this issue: https://github.com/ros-planning/moveit/issues/2357
+  QString file_name = QFileDialog::getSaveFileName(this, tr("Save All Calibration Parameters"), "",
+                                                   tr("Target File (*.yaml);;All Files (*)"), nullptr,
+                                                   QFileDialog::DontUseNativeDialog);
+  if (file_name.isEmpty())
+  {
+    return;
+  }
+
+  if (!file_name.endsWith(".yaml"))
+  {
+    file_name += ".yaml";
+  }
+
+  QFile output_file(file_name);
+  if (!output_file.open(QIODevice::WriteOnly))
+  {
+    QMessageBox::warning(this, tr("Unable to open file"), output_file.errorString());
+    return;
+  }
+
   YAML::Node root;
   root["target_params"] = tab_target_->serializeAllParams();
   root["context_params"] = tab_context_->serializeAllParams();
   root["control_params"] = tab_control_->serializeAllParams();
-  YAML::Emitter output;
-  output << root;
+  YAML::Emitter output_emitter;
+  output_emitter << root;
 
-  std::ofstream yaml_file_out("handeye-cal-config.yaml");
-  yaml_file_out << output.c_str();
-  yaml_file_out.close();
+  QTextStream output_stream(&output_file);
+  output_stream << output_emitter.c_str();
 }
 
 void HandEyeCalibrationGui::loadAllParamsBtnClicked(bool clicked)
