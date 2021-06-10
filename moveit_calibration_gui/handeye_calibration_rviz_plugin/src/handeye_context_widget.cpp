@@ -272,7 +272,7 @@ void ContextTabWidget::loadWidget(const rviz::Config& config)
     if (config.mapGetString(frame.first.c_str(), &frame_name))
     {
       frame.second->clear();
-      if (!frame_name.isEmpty() && frame.second->hasFrame(frame_name.toStdString()))
+      if (!frame_name.isEmpty())
         frame.second->addItem(frame_name);
     }
   }
@@ -487,7 +487,7 @@ void ContextTabWidget::setCameraPose(double tx, double ty, double tz, double rx,
   camera_pose_ = visual_tools_->convertFromXYZRPY(tx, ty, tz, rx, ry, rz, rviz_visual_tools::XYZ);
 }
 
-YAML::Node ContextTabWidget::serializeAllParams()
+YAML::Node ContextTabWidget::serializeAllParameters()
 {
   YAML::Node context_params;
   context_params["sensor_mount_type"] = sensor_mount_type_->currentText().toStdString();
@@ -506,6 +506,15 @@ YAML::Node ContextTabWidget::serializeAllParams()
   }
 
   return context_params;
+}
+
+void ContextTabWidget::loadSerializedParameters(const YAML::Node& parameters)
+{
+  // int index = sensor_mount_type_->findData(parameters["sensor_mount_type"]);
+  // if (index >= 0)
+  // {
+  //   sensor_mount_type_->setCurrentIndex(index);
+  // }
 }
 
 void ContextTabWidget::setCameraInfo(sensor_msgs::CameraInfo camera_info)

@@ -177,7 +177,9 @@ public:
 
   void setCameraPose(double tx, double ty, double tz, double rx, double ry, double rz);
 
-  YAML::Node serializeAllParams();
+  YAML::Node serializeAllParameters();
+
+  void loadSerializedParameters(const YAML::Node& parameters);
 
 public Q_SLOTS:
 

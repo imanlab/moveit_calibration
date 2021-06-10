@@ -976,7 +976,7 @@ void ControlTabWidget::computeExecution()
     ROS_ERROR_STREAM_NAMED(LOGNAME, "Execution failed.");
 }
 
-YAML::Node ControlTabWidget::serializeAllParams()
+YAML::Node ControlTabWidget::serializeAllParameters()
 {
   YAML::Node root;
   root["solver"] = calibration_solver_->currentText().toStdString();
@@ -1007,6 +1007,10 @@ YAML::Node ControlTabWidget::serializeJointStates()
   }
 
   return root;
+}
+
+void ControlTabWidget::loadSerializedParameters(const YAML::Node& parameters)
+{
 }
 
 void ControlTabWidget::planFinished()

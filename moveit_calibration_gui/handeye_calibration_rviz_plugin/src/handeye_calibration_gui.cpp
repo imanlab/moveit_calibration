@@ -143,9 +143,9 @@ void HandEyeCalibrationGui::saveAllParamsBtnClicked(bool clicked)
   }
 
   YAML::Node root;
-  root["target_params"] = tab_target_->serializeAllParams();
-  root["context_params"] = tab_context_->serializeAllParams();
-  root["control_params"] = tab_control_->serializeAllParams();
+  root["target_params"] = tab_target_->serializeAllParameters();
+  root["context_params"] = tab_context_->serializeAllParameters();
+  root["control_params"] = tab_control_->serializeAllParameters();
   YAML::Emitter output_emitter;
   output_emitter << root;
 
@@ -155,6 +155,20 @@ void HandEyeCalibrationGui::saveAllParamsBtnClicked(bool clicked)
 
 void HandEyeCalibrationGui::loadAllParamsBtnClicked(bool clicked)
 {
+  QString file_name =
+      QFileDialog::getOpenFileName(this, tr("Load All Calibration Parameters"), "", tr("Target File (*.yaml)"), nullptr,
+                                   QFileDialog::DontUseNativeDialog);
+
+  if (file_name.isEmpty())
+  {
+    return;
+  }
+
+  YAML::Node root = YAML::LoadFile(file_name.toStdString());
+
+  tab_target_->loadSerializedParameters(root["target_params"]);
+  tab_control_->loadSerializedParameters(root["control_params"]);
+  tab_context_->loadSerializedParameters(root["context_params"]);
 }
 
 }  // namespace moveit_rviz_plugin

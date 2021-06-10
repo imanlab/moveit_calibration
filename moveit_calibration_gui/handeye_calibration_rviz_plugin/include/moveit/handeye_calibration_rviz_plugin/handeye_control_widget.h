@@ -152,9 +152,11 @@ public:
 
   void computeExecution();
 
-  YAML::Node serializeAllParams();
+  YAML::Node serializeAllParameters();
 
   YAML::Node serializeJointStates();
+
+  void loadSerializedParameters(const YAML::Node& parameters);
 
 Q_SIGNALS:
 

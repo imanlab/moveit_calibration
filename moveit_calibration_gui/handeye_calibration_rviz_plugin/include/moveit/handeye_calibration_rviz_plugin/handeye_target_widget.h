@@ -131,7 +131,9 @@ public:
 
   void cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& msg);
 
-  YAML::Node serializeAllParams();
+  YAML::Node serializeAllParameters();
+
+  void loadSerializedParameters(const YAML::Node& parameters);
 
 private Q_SLOTS:
 

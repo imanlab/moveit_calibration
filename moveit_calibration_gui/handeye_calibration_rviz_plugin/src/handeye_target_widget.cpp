@@ -456,7 +456,7 @@ void TargetTabWidget::cameraInfoCallback(const sensor_msgs::CameraInfoConstPtr& 
   }
 }
 
-YAML::Node TargetTabWidget::serializeAllParams()
+YAML::Node TargetTabWidget::serializeAllParameters()
 {
   YAML::Node root;
   root["target"] = target_->serializeParameters();
@@ -466,6 +466,10 @@ YAML::Node TargetTabWidget::serializeAllParams()
   }
 
   return root;
+}
+
+void TargetTabWidget::loadSerializedParameters(const YAML::Node& parameters)
+{
 }
 
 void TargetTabWidget::targetTypeComboboxChanged(const QString& text)
