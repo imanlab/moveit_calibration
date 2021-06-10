@@ -54,6 +54,7 @@
 #include <QProgressBar>
 #include <QtConcurrent/QtConcurrent>
 #include <QStandardItemModel>
+#include <QLineEdit>
 
 // ros
 #include <tf2_eigen/tf2_eigen.h>
@@ -178,6 +179,12 @@ private Q_SLOTS:
 
   void planningGroupNameChanged(const QString& text);
 
+  void setGroupName(const std::string& group_name);
+
+  void planningGroupNamespaceChanged();
+
+  void fillPlanningGroupNameComboBox();
+
   void saveJointStateBtnClicked(bool clicked);
 
   void loadJointStateBtnClicked(bool clicked);
@@ -216,6 +223,8 @@ private:
   QPushButton* solve_btn_;
 
   // Auto calibration
+  QLineEdit* psm_topic_;
+  QLineEdit* group_namespace_;
   QComboBox* group_name_;
   QPushButton* auto_plan_btn_;
   QPushButton* auto_execute_btn_;

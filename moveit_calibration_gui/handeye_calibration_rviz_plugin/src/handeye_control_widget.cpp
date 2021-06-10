@@ -153,6 +153,17 @@ ControlTabWidget::ControlTabWidget(QWidget* parent)
   calibration_solver_ = new QComboBox();
   setting_layout_top->addRow("AX=XB Solver", calibration_solver_);
 
+  psm_topic_ = new QLineEdit();
+  psm_topic_->setContentsMargins(0, 0, 0, 0);
+  psm_topic_->insert("/move_group/monitored_planning_scene");
+  connect(psm_topic_, SIGNAL(editingFinished()), this, SLOT(planningSceneMonitorTopicChanged()));
+  setting_layout_top->addRow("Planning scene topic", psm_topic_);
+
+  group_namespace_ = new QLineEdit();
+  group_namespace_->setContentsMargins(0, 0, 0, 0);
+  connect(group_namespace_, SIGNAL(editingFinished()), this, SLOT(planningGroupNamespaceChanged()));
+  setting_layout_top->addRow("Namespace", group_namespace_);
+
   group_name_ = new QComboBox();
   connect(group_name_, SIGNAL(activated(const QString&)), this, SLOT(planningGroupNameChanged(const QString&)));
   setting_layout_top->addRow("Planning Group", group_name_);
@@ -229,32 +240,7 @@ ControlTabWidget::ControlTabWidget(QWidget* parent)
   if (loadSolverPlugin(plugins))
     fillSolverTypes(plugins);
 
-  // Fill in available planning group names
-  planning_scene_monitor_.reset(
-      new planning_scene_monitor::PlanningSceneMonitor("robot_description", tf_buffer_, "planning_scene_monitor"));
-  if (planning_scene_monitor_)
-  {
-    planning_scene_monitor_->startSceneMonitor("move_group/monitored_planning_scene");
-    std::string service_name = planning_scene_monitor::PlanningSceneMonitor::DEFAULT_PLANNING_SCENE_SERVICE;
-    if (planning_scene_monitor_->requestPlanningSceneState(service_name))
-    {
-      const robot_model::RobotModelConstPtr& kmodel = planning_scene_monitor_->getRobotModel();
-      for (const std::string& group_name : kmodel->getJointModelGroupNames())
-        group_name_->addItem(group_name.c_str());
-      if (!group_name_->currentText().isEmpty())
-        try
-        {
-          moveit::planning_interface::MoveGroupInterface::Options opt(group_name_->currentText().toStdString());
-          opt.node_handle_ = nh_;
-          move_group_.reset(
-              new moveit::planning_interface::MoveGroupInterface(opt, tf_buffer_, ros::WallDuration(30, 0)));
-        }
-        catch (std::exception& ex)
-        {
-          ROS_ERROR_NAMED(LOGNAME, "%s", ex.what());
-        }
-    }
-  }
+  fillPlanningGroupNameComboBox();
 
   // Set plan and execution watcher
   plan_watcher_ = new QFutureWatcher<void>(this);
@@ -660,27 +646,60 @@ void ControlTabWidget::planningGroupNameChanged(const QString& text)
 {
   if (!text.isEmpty())
   {
-    if (move_group_ && move_group_->getName() == text.toStdString())
-      return;
-
-    try
-    {
-      moveit::planning_interface::MoveGroupInterface::Options opt(group_name_->currentText().toStdString());
-      opt.node_handle_ = nh_;
-      move_group_.reset(new moveit::planning_interface::MoveGroupInterface(opt, tf_buffer_, ros::WallDuration(30, 0)));
-
-      // Clear the joint values aligning with other group
-      joint_states_.clear();
-      auto_progress_->setMax(0);
-    }
-    catch (const std::exception& e)
-    {
-      ROS_ERROR_NAMED(LOGNAME, "%s", e.what());
-    }
+    setGroupName(text.toStdString());
   }
   else
   {
     QMessageBox::warning(this, tr("Invalid Group Name"), "Group name is empty");
+  }
+}
+
+void ControlTabWidget::setGroupName(const std::string& group_name)
+{
+  if (move_group_ && move_group_->getName() == group_name)
+    return;
+
+  try
+  {
+    moveit::planning_interface::MoveGroupInterface::Options opt(group_name);
+    opt.node_handle_ = ros::NodeHandle(group_namespace_->text().toStdString());
+    move_group_.reset(new moveit::planning_interface::MoveGroupInterface(opt, tf_buffer_, ros::WallDuration(5, 0)));
+
+    // Clear the joint values aligning with other group
+    joint_states_.clear();
+    auto_progress_->setMax(0);
+  }
+  catch (const std::exception& e)
+  {
+    ROS_ERROR_NAMED(LOGNAME, "%s", e.what());
+  }
+}
+
+void ControlTabWidget::planningGroupNamespaceChanged()
+{
+  fillPlanningGroupNameComboBox();
+}
+
+void ControlTabWidget::fillPlanningGroupNameComboBox()
+{
+  group_name_->clear();
+  // Fill in available planning group names
+  planning_scene_monitor_.reset(
+      new planning_scene_monitor::PlanningSceneMonitor("robot_description", tf_buffer_, "planning_scene_monitor"));
+  if (planning_scene_monitor_)
+  {
+    planning_scene_monitor_->startSceneMonitor(psm_topic_->text().toStdString());
+    std::string service_name = planning_scene_monitor::PlanningSceneMonitor::DEFAULT_PLANNING_SCENE_SERVICE;
+    if (planning_scene_monitor_->requestPlanningSceneState(service_name))
+    {
+      const robot_model::RobotModelConstPtr& kmodel = planning_scene_monitor_->getRobotModel();
+      for (const std::string& group_name : kmodel->getJointModelGroupNames())
+      {
+        group_name_->addItem(group_name.c_str());
+      }
+      if (!group_name_->currentText().isEmpty())
+        setGroupName(group_name_->currentText().toStdString());
+    }
   }
 }
 
