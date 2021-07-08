@@ -696,7 +696,19 @@ void ControlTabWidget::fillPlanningGroupNameComboBox()
       }
       if (!group_name_->currentText().isEmpty())
         setGroupName(group_name_->currentText().toStdString());
+      else
+      {
+        ROS_ERROR_NAMED(LOGNAME, "No groups found when filling group name combo box");
+      }
     }
+    else
+    {
+      ROS_ERROR_NAMED(LOGNAME, "No planning scene state when filling group name combo box");
+    }
+  }
+  else
+  {
+    ROS_ERROR_NAMED(LOGNAME, "No planning scene monitor when filling group name combo box");
   }
 }
 
